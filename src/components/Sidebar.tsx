@@ -2282,7 +2282,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </label>
                 <input
                   type="text"
-                  placeholder="https://... বা http://127.0.0.1:3000"
+                  placeholder="e.g. https://your-app.onrender.com"
                   value={customServerInput}
                   onChange={(e) => setCustomServerInput(e.target.value)}
                   className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#00a884] font-mono text-inherit"
@@ -2297,8 +2297,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => setCustomServerInput("https://ais-pre-qkpd3ywpqroikeei6ilayf-233775012847.asia-southeast1.run.app")}
                   className="w-full text-left px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-[#00a884] dark:text-[#00e676] text-xs font-semibold flex items-center justify-between cursor-pointer"
                 >
-                  <span>🌐 লাইভ ক্লাউড সার্ভার (Live Cloud)</span>
-                  <span className="text-[9px] opacity-60">অনলাইন</span>
+                  <span>🌐 ডিফল্ট প্রিভিউ সার্ভার (Preview Cloud)</span>
+                  <span className="text-[9px] opacity-60">AI Studio</span>
                 </button>
                 <button
                   type="button"

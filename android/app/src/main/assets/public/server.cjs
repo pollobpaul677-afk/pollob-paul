@@ -34,7 +34,7 @@ var import_qrcode = __toESM(require("qrcode"), 1);
 var import_fs = __toESM(require("fs"), 1);
 import_dotenv.default.config();
 var app = (0, import_express.default)();
-var PORT = 3e3;
+var PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3e3;
 var httpServer = (0, import_http.createServer)(app);
 var io = new import_socket.Server(httpServer, {
   cors: {
