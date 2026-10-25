@@ -1,0 +1,13 @@
+{
+  "name": "wa-web-ondevice-engine",
+  "version": "1.0.0",
+  "description": "Embedded On-Device Baileys WhatsApp Engine for Android",
+  "main": "main.js",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^7.0.0-rc13",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.3",
+    "qrcode": "^1.5.4",
+    "dotenv": "^17.2.3"
+  }
+}
