@@ -76,6 +76,9 @@ interface SidebarProps {
   onUpdateContactSettings?: (contactId: string, updates: Partial<Contact>) => void;
   onClearChat?: (contactId: string) => void;
   onDeleteChat?: (contactId: string) => void;
+  isSocketConnected?: boolean;
+  activeServerUrl?: string;
+  onUpdateServerUrl?: (url: string) => void;
 }
 
 type BottomTab = "chats" | "updates" | "communities" | "calls" | "you";
@@ -103,12 +106,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onClearChat,
   onDeleteChat,
   onViewProfile,
+  isSocketConnected = true,
+  activeServerUrl,
+  onUpdateServerUrl,
 }) => {
   const [activeTab, setActiveTab] = useState<BottomTab>("chats");
   const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showMultiDeviceModal, setShowMultiDeviceModal] = useState(false);
+  const [showServerModal, setShowServerModal] = useState(false);
+  const [customServerInput, setCustomServerInput] = useState(activeServerUrl || "");
+
+  useEffect(() => {
+    if (activeServerUrl) {
+      setCustomServerInput(activeServerUrl);
+    }
+  }, [activeServerUrl]);
 
   // New Chat Panel & Keypad States
   const [showNewChatDrawer, setShowNewChatDrawer] = useState(false);
@@ -1320,6 +1334,45 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             ) : (
               <div>
+                {/* Server Connection Status & Config Button */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 text-xs mb-3">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isSocketConnected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-amber-500 animate-ping'}`} />
+                    <span className="font-semibold text-[11px] truncate">
+                      {isSocketConnected ? 'সার্ভার সংযুক্ত (Connected)' : 'সার্ভারে কানেক্ট হচ্ছে...'}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setCustomServerInput(activeServerUrl || "");
+                      setShowServerModal(true);
+                    }}
+                    className="text-[11px] text-[#00a884] dark:text-[#00e676] font-bold hover:underline cursor-pointer flex items-center gap-1 shrink-0 ml-2"
+                  >
+                    <Settings size={13} /> সার্ভার ইউআরএল
+                  </button>
+                </div>
+
+                {!isSocketConnected && (
+                  <div className="mb-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs">
+                    <p className="font-bold flex items-center gap-1.5 mb-1">
+                      ⚠️ ব্যাকএন্ড সার্ভারের সাথে কানেক্ট হতে পারছে না
+                    </p>
+                    <p className="text-[10px] opacity-85 leading-relaxed">
+                      অ্যাপটি বর্তমানে <b>{activeServerUrl || "সার্ভার"}</b> এ কানেক্ট করার চেষ্টা করছে। ক্লাউড সার্ভার সিলেক্ট করতে বা ইউআরএল চেক করতে নিচে ট্যাপ করুন:
+                    </p>
+                    <button
+                      onClick={() => {
+                        setCustomServerInput(activeServerUrl || "");
+                        setShowServerModal(true);
+                      }}
+                      className="mt-2 text-[11px] font-bold underline cursor-pointer text-[#00a884] dark:text-[#00e676]"
+                    >
+                      সার্ভার ইউআরএল পরিবর্তন / চেক করুন
+                    </button>
+                  </div>
+                )}
+
                 {/* TABS: QR CODE vs PHONE PAIRING */}
                 <div className="flex rounded-lg bg-black/5 dark:bg-white/5 p-1 mb-4">
                   <button
@@ -2203,6 +2256,78 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <Trash2 size={17} className="text-red-500 shrink-0" />
                 <span>Delete chat</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SERVER SETTINGS MODAL */}
+      {showServerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className={`w-full max-w-sm rounded-2xl shadow-2xl p-6 border ${
+            isDark ? "bg-[#222e35] border-gray-700 text-white" : "bg-white border-gray-200 text-gray-800"
+          }`}>
+            <h3 className="font-extrabold text-base mb-2 flex items-center gap-2 text-[#00a884]">
+              <Settings size={20} /> ব্যাকএন্ড সার্ভার সেটিংস
+            </h3>
+            <p className="text-xs opacity-75 mb-4 leading-relaxed">
+              মোবাইল অ্যাপ বা ব্রাউজার যে WhatsApp Baileys ব্যাকএন্ড সার্ভারের সাথে যোগাযোগ করবে তার ইউআরএল:
+            </p>
+
+            <div className="space-y-3 mb-5">
+              <div>
+                <label className="block text-[10px] font-black uppercase opacity-60 mb-1">
+                  সার্ভার ইউআরএল (Server URL)
+                </label>
+                <input
+                  type="text"
+                  placeholder="https://... বা http://127.0.0.1:3000"
+                  value={customServerInput}
+                  onChange={(e) => setCustomServerInput(e.target.value)}
+                  className="w-full bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#00a884] font-mono text-inherit"
+                />
+              </div>
+
+              {/* Quick Select Buttons */}
+              <div className="space-y-1.5 pt-1">
+                <p className="text-[10px] font-bold opacity-60">দ্রুত নির্বাচন করুন (Quick Select):</p>
+                <button
+                  type="button"
+                  onClick={() => setCustomServerInput("https://ais-pre-qkpd3ywpqroikeei6ilayf-233775012847.asia-southeast1.run.app")}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-[#00a884] dark:text-[#00e676] text-xs font-semibold flex items-center justify-between cursor-pointer"
+                >
+                  <span>🌐 লাইভ ক্লাউড সার্ভার (Live Cloud)</span>
+                  <span className="text-[9px] opacity-60">অনলাইন</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCustomServerInput("http://127.0.0.1:3000")}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-xs font-semibold flex items-center justify-between cursor-pointer"
+                >
+                  <span>📱 অন-ডিভাইস / Termux (127.0.0.1:3000)</span>
+                  <span className="text-[9px] opacity-60">লোকাল</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 text-xs">
+              <button
+                onClick={() => setShowServerModal(false)}
+                className="px-4 py-2 border border-black/10 dark:border-white/10 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 font-bold cursor-pointer"
+              >
+                বাতিল (Cancel)
+              </button>
+              <button
+                onClick={() => {
+                  if (onUpdateServerUrl) {
+                    onUpdateServerUrl(customServerInput.trim());
+                  }
+                  setShowServerModal(false);
+                }}
+                className="px-4 py-2 bg-[#00a884] hover:bg-[#008069] text-white rounded-lg font-bold cursor-pointer transition-colors shadow"
+              >
+                সংরক্ষণ ও রিকানেক্ট (Save & Connect)
               </button>
             </div>
           </div>

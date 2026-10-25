@@ -300,27 +300,88 @@ export default function App() {
     }
   }, [socket]);
 
-  // Helper to dynamically resolve backend URL for both Web and Android Capacitor On-Device
-  const getBackendUrl = () => {
+  // Robust backend URL resolver supporting Web Browser, Android APK, and Custom Server URL
+  const DEFAULT_CLOUD_URL = "https://ais-pre-qkpd3ywpqroikeei6ilayf-233775012847.asia-southeast1.run.app";
+
+  const getBackendUrl = (): string => {
     if (typeof window !== "undefined") {
-      if (
+      // 1. User configured custom server URL in localStorage
+      const saved = localStorage.getItem("wa_server_url");
+      if (saved && saved.trim()) {
+        return saved.trim().replace(/\/+$/, "");
+      }
+
+      // 2. Browser Environment: If not inside Capacitor Android, use current window.location.origin
+      const isCapacitorOrLocalNative =
         window.location.protocol === "capacitor:" ||
         window.location.protocol === "file:" ||
-        (window.location.hostname === "localhost" && window.location.port !== "3000" && !window.location.port)
-      ) {
-        return "http://127.0.0.1:3000";
+        (window.location.hostname === "localhost" && window.location.port !== "3000" && !window.location.port);
+
+      if (!isCapacitorOrLocalNative && (window.location.protocol === "http:" || window.location.protocol === "https:")) {
+        return window.location.origin;
       }
-      return window.location.origin;
+
+      // 3. Android APK / Native Environment: Connect to live Cloud Backend
+      const cloudUrl = (import.meta.env.VITE_APP_URL || DEFAULT_CLOUD_URL).replace(/\/+$/, "");
+      return cloudUrl;
     }
-    return "http://localhost:3000";
+    return DEFAULT_CLOUD_URL;
+  };
+
+  const [activeServerUrl, setActiveServerUrl] = useState<string>(() => getBackendUrl());
+  const [isSocketConnected, setIsSocketConnected] = useState<boolean>(false);
+
+  const handleUpdateServerUrl = (newUrl: string) => {
+    const clean = newUrl.trim().replace(/\/+$/, "");
+    if (clean) {
+      localStorage.setItem("wa_server_url", clean);
+    } else {
+      localStorage.removeItem("wa_server_url");
+    }
+    const resolved = getBackendUrl();
+    setActiveServerUrl(resolved);
+    // Force reload socket connection with new server URL
+    if (socket) {
+      try { socket.disconnect(); } catch (_) {}
+    }
+    const newSocket = io(resolved, {
+      transports: ["polling", "websocket"],
+      reconnectionAttempts: 15,
+      reconnectionDelay: 1000,
+      timeout: 10000,
+    });
+    setSocket(newSocket);
   };
 
   // Set up global Socket.io client for real-time WhatsApp updates
   useEffect(() => {
-    const newSocket = io(getBackendUrl(), {
+    const currentBackendUrl = getBackendUrl();
+    setActiveServerUrl(currentBackendUrl);
+
+    console.log("[Socket.io] Connecting to WhatsApp backend:", currentBackendUrl);
+
+    const newSocket = io(currentBackendUrl, {
       transports: ["polling", "websocket"],
+      reconnectionAttempts: 15,
+      reconnectionDelay: 1000,
+      timeout: 10000,
     });
     setSocket(newSocket);
+
+    newSocket.on("connect", () => {
+      console.log("[Socket.io] Connected successfully to:", currentBackendUrl);
+      setIsSocketConnected(true);
+    });
+
+    newSocket.on("disconnect", () => {
+      console.warn("[Socket.io] Disconnected from:", currentBackendUrl);
+      setIsSocketConnected(false);
+    });
+
+    newSocket.on("connect_error", (err: any) => {
+      console.error("[Socket.io] Connection error to:", currentBackendUrl, err.message);
+      setIsSocketConnected(false);
+    });
 
     newSocket.on("whatsapp-status", (status: any) => {
       setWhatsappStatus(status);
@@ -1393,6 +1454,9 @@ export default function App() {
           onUpdateContactSettings={handleUpdateContactSettings}
           onClearChat={handleClearChat}
           onDeleteChat={handleDeleteChat}
+          isSocketConnected={isSocketConnected}
+          activeServerUrl={activeServerUrl}
+          onUpdateServerUrl={handleUpdateServerUrl}
         />
 
         {/* Right Hand Conversation / Intro Canvas */}

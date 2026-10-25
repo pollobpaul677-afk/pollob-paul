@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'WhatsApp Web Pro',
   webDir: 'dist',
   server: {
-    androidScheme: 'http',
+    androidScheme: 'https',
     cleartext: true,
     allowNavigation: ['*']
   },
